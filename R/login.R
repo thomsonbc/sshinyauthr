@@ -18,6 +18,8 @@
 loginUI <- function(id,
                     title = "Please log in",
                     user_title = "User Name",
+                    domain_title = "Domain",
+                    domain = '',
                     pass_title = "Password",
                     login_title = "Log in",
                     login_btn_class = "btn-primary",
@@ -37,6 +39,7 @@ loginUI <- function(id,
         shinyjs::extendShinyjs(text = js_return_click(ns("password"), ns("button")), functions = c()),
         shiny::tags$h2(title, class = "text-center", style = "padding-top: 0;"),
         shiny::textInput(ns("user_name"), shiny::tagList(shiny::icon("user"), user_title)),
+        shiny::textInput(ns("domain"), shiny::tagList(shiny::icon("server"), domain_title), placeholder = 'Example @college.tcd.ie', value = domain),
         shiny::passwordInput(ns("password"), shiny::tagList(shiny::icon("unlock-alt"), pass_title)),
         shiny::div(
           style = "text-align: center;",
@@ -247,6 +250,203 @@ loginServer <- function(id,
     }
   )
 }
+
+#' ssh login server module
+#'
+#' Shiny authentication module for use with \link{loginUI}
+#' 
+#' This module uses shiny's new \link[shiny]{moduleServer} method as opposed to the \link[shiny]{callModule}
+#' method used by the now deprecated \link{login} function and must be called differently in your app.
+#' For details on how to migrate see the 'Migrating from callModule to moduleServer' section of 
+#' \href{https://shiny.rstudio.com/articles/modules.html}{Modularizing Shiny app code}.
+#'
+#' @param id 	An ID string that corresponds with the ID used to call the module's UI function
+#' @param user_col bare (unquoted) or quoted column name containing user names
+#' @param pwd_col bare (unquoted) or quoted column name containing passwords
+#' @param host bare (quotes) IP or URL of machine to use for SSH login
+#' @param port bare (unquoted) an integer corresponding to the port used for SSH login
+#' @param log_out [reactive] supply the returned reactive from \link{logoutServer} here to trigger a user logout
+#' @param reload_on_logout should app force a session reload on logout?
+#' @param cookie_logins enable automatic logins via browser cookies?
+#' @param sessionid_col bare (unquoted) or quoted column name containing session ids
+#' @param cookie_getter a function that returns a data.frame with at least two columns: user and session
+#' @param cookie_setter a function with two parameters: user and session.  The function must save these to a database.
+#'
+#' @return The module will return a reactive 2 element list to your main application.
+#'   First element \code{user_auth} is a boolean indicating whether there has been
+#'   a successful login or not. Second element \code{info} will be the data frame provided
+#'   to the function, filtered to the row matching the successfully logged in username.
+#'   When \code{user_auth} is FALSE \code{info} is NULL.
+#'
+#' @importFrom rlang :=
+#'
+#' @example inst/shiny-examples/basic/app.R
+#' @export
+sshLoginServer <- function(id, 
+                        user_col,
+                        pwd_col,
+                        host,
+                        port,
+                        log_out = shiny::reactiveVal(),
+                        reload_on_logout = FALSE,
+                        cookie_logins = FALSE,
+                        sessionid_col,
+                        cookie_getter,
+                        cookie_setter) {
+
+    if (cookie_logins && (missing(cookie_getter) | missing(cookie_setter) | 
+        missing(sessionid_col))) {
+        stop("if cookie_logins = TRUE, cookie_getter, cookie_setter and sessionid_col must be provided")
+    }
+    else {
+        try_class_sc <- try(class(sessionid_col), silent = TRUE)
+        if (try_class_sc == "character") {
+            sessionid_col <- rlang::sym(sessionid_col)
+        }
+    }
+    shiny::moduleServer(id, function(input, output, session) {
+        credentials <- shiny::reactiveValues(user_auth = FALSE, 
+            info = NULL, cookie_already_checked = FALSE)
+        shiny::observeEvent(log_out(), {
+            if (cookie_logins) {
+                shinyjs::js$rmcookie()
+            }
+            if (reload_on_logout) {
+                session$reload()
+            }
+            else {
+                shiny::updateTextInput(session, "password", value = "")
+                credentials$user_auth <- FALSE
+                credentials$info <- NULL
+            }
+        })
+        shiny::observe({
+            if (cookie_logins) {
+                if (credentials$user_auth) {
+                  shinyjs::hide(id = "panel")
+                }
+                else if (credentials$cookie_already_checked) {
+                  shinyjs::show(id = "panel")
+                }
+            }
+            else {
+                shinyjs::toggle(id = "panel", condition = !credentials$user_auth)
+            }
+        })
+        if (cookie_logins) {
+            shiny::observeEvent(shiny::isTruthy(shinyjs::js$getcookie()), 
+                {
+                  shinyjs::js$getcookie()
+                })
+            shiny::observeEvent(input$jscookie, {
+                credentials$cookie_already_checked <- TRUE
+                shiny::req(credentials$user_auth == FALSE, is.null(input$jscookie) == 
+                  FALSE, nchar(input$jscookie) > 0)
+                cookie_data <- dplyr::filter(cookie_getter(), 
+                  {
+                    {
+                      sessionid_col
+                    }
+                  } == input$jscookie)
+                if (nrow(cookie_data) != 1) {
+                  shinyjs::js$rmcookie()
+                }
+                else {
+                  .userid <- dplyr::pull(cookie_data, {
+                    {
+                      user_col
+                    }
+                  })
+                  .sessionid <- randomString()
+                  shinyjs::js$setcookie(.sessionid)
+                  cookie_setter(.userid, .sessionid)
+                  cookie_data <- utils::head(dplyr::filter(cookie_getter(), 
+                    {
+                      {
+                        sessionid_col
+                      }
+                    } == .sessionid, {
+                      {
+                        user_col
+                      }
+                    } == .userid))
+                  credentials$user_auth <- TRUE
+                  credentials$info <- dplyr::bind_cols(dplyr::filter(data, 
+                    {
+                      {
+                        user_col
+                      }
+                    } == .userid), dplyr::select(cookie_data, 
+                    -{
+                      {
+                        user_col
+                      }
+                    }))
+                }
+            })
+        }
+        shiny::observeEvent(input$button, {
+            password_match <- FALSE
+            server_status <- pingr::is_up(destination = host, port = port)
+            if (server_status) {
+                user_machine_login <- paste0(input$user_name, input$domain, "@", host)
+                tryCatch(expr = {
+                  ssh_login <- ssh::ssh_connect(user_machine_login, passwd = input$password)
+                  password_match <- ssh::ssh_info(ssh_login)$connected
+                  message("Login worked")
+                }, error = function(e) {
+                  message("ssh authentication failed!")
+                  password_match <- FALSE
+                }, warning = function(w) {
+                  message("ssh auth failed!")
+                  password_match <- FALSE
+                })
+            }
+            else {
+                password_match <- FALSE
+            }
+            if (password_match) {
+                ssh::ssh_disconnect(ssh_login)
+            }
+            if (password_match) {
+                credentials$user_auth <- TRUE
+                credentials$info <- tibble::tibble(user = input$user_name, 
+                  password = input$password, permissions = "standard", 
+                  name = "User")
+                if (cookie_logins) {
+                  .sessionid <- randomString()
+                  shinyjs::js$setcookie(.sessionid)
+                  cookie_setter(input$user_name, .sessionid)
+                  cookie_data <- dplyr::filter(dplyr::select(cookie_getter(), 
+                    -{
+                      {
+                        user_col
+                      }
+                    }), {
+                    {
+                      sessionid_col
+                    }
+                  } == .sessionid)
+                  if (nrow(cookie_data) == 1) {
+                    credentials$info <- dplyr::bind_cols(credentials$info, 
+                      cookie_data)
+                  }
+                }
+            }
+            else {
+                shinyjs::toggle(id = "error", anim = TRUE, time = 1, 
+                  animType = "fade")
+                shinyjs::delay(5000, shinyjs::toggle(id = "error", 
+                  anim = TRUE, time = 1, animType = "fade"))
+            }
+        })
+        shiny::reactive({
+            shiny::reactiveValuesToList(credentials)
+        })
+    })
+}
+  
+  
 
 #' login server module (deprecated)
 #' 

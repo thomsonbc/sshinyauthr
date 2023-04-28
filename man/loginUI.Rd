@@ -8,6 +8,7 @@ loginUI(
   id,
   title = "Please log in",
   user_title = "User Name",
+  domain_title = "Domain",
   pass_title = "Password",
   login_title = "Log in",
   login_btn_class = "btn-primary",
