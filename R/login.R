@@ -5,7 +5,11 @@
 #' @param id An ID string that corresponds with the ID used to call the module's server function
 #' @param title header title for the login panel
 #' @param user_title label for the user name text input
+#' @param user default user name, good for development purposes
+#' @param domain_title label for domain panel
+#' @param domain default domain, good for development purposes
 #' @param pass_title label for the password text input
+#' @param password default password, good for development purposes
 #' @param login_title label for the login button
 #' @param login_btn_class bootstrap class for the login button. defaults to "btn-primary"
 #' @param error_message message to display after failed login
@@ -18,9 +22,11 @@
 loginUI <- function(id,
                     title = "Please log in",
                     user_title = "User Name",
+                    user = "",
                     domain_title = "Domain",
-                    domain = '',
+                    domain = "",
                     pass_title = "Password",
+                    password = "",
                     login_title = "Log in",
                     login_btn_class = "btn-primary",
                     error_message = "Invalid username or password!",
@@ -38,9 +44,9 @@ loginUI <- function(id,
         shinyjs::extendShinyjs(text = js_cookie_to_r_code(ns("jscookie"), expire_days = cookie_expiry), functions = c("getcookie", "setcookie", "rmcookie")),
         shinyjs::extendShinyjs(text = js_return_click(ns("password"), ns("button")), functions = c()),
         shiny::tags$h2(title, class = "text-center", style = "padding-top: 0;"),
-        shiny::textInput(ns("user_name"), shiny::tagList(shiny::icon("user"), user_title)),
+        shiny::textInput(ns("user_name"), shiny::tagList(shiny::icon("user"), user_title), value = user),
         shiny::textInput(ns("domain"), shiny::tagList(shiny::icon("server"), domain_title), placeholder = 'Example @college.tcd.ie', value = domain),
-        shiny::passwordInput(ns("password"), shiny::tagList(shiny::icon("unlock-alt"), pass_title)),
+        shiny::passwordInput(ns("password"), shiny::tagList(shiny::icon("unlock-alt"), pass_title), value = password),
         shiny::div(
           style = "text-align: center;",
           shiny::tags$button(id = ns("button"), type = "button", class = paste("btn", login_btn_class, "action-button"), login_title)
@@ -261,8 +267,6 @@ loginServer <- function(id,
 #' \href{https://shiny.rstudio.com/articles/modules.html}{Modularizing Shiny app code}.
 #'
 #' @param id 	An ID string that corresponds with the ID used to call the module's UI function
-#' @param user_col bare (unquoted) or quoted column name containing user names
-#' @param pwd_col bare (unquoted) or quoted column name containing passwords
 #' @param host bare (quotes) IP or URL of machine to use for SSH login
 #' @param port bare (unquoted) an integer corresponding to the port used for SSH login
 #' @param log_out [reactive] supply the returned reactive from \link{logoutServer} here to trigger a user logout
@@ -283,8 +287,6 @@ loginServer <- function(id,
 #' @example inst/shiny-examples/basic/app.R
 #' @export
 sshLoginServer <- function(id, 
-                        user_col,
-                        pwd_col,
                         host,
                         port,
                         log_out = shiny::reactiveVal(),
