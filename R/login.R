@@ -294,7 +294,9 @@ sshLoginServer <- function(id,
                         cookie_logins = FALSE,
                         sessionid_col,
                         cookie_getter,
-                        cookie_setter) {
+                        cookie_setter,
+                        manager_env = 'MANAGER',
+                        sep = ',') {
 
     if (cookie_logins && (missing(cookie_getter) | missing(cookie_setter) | 
         missing(sessionid_col))) {
@@ -308,7 +310,7 @@ sshLoginServer <- function(id,
     }
     shiny::moduleServer(id, function(input, output, session) {
         credentials <- shiny::reactiveValues(user_auth = FALSE, 
-            info = NULL, cookie_already_checked = FALSE)
+            info = NULL, cookie_already_checked = FALSE, manager = FALSE)
         shiny::observeEvent(log_out(), {
             if (cookie_logins) {
                 shinyjs::js$rmcookie()
@@ -412,9 +414,15 @@ sshLoginServer <- function(id,
             }
             if (password_match) {
                 credentials$user_auth <- TRUE
-                credentials$info <- tibble::tibble(user = input$user_name, 
-                  password = input$password, permissions = "standard", 
-                  name = "User")
+                
+                managers <- strsplit(Sys.getenv(manager_env), split = sep)[[1]]
+                
+                if (input$user_name %in% managers) {
+                  credentials$manager <- TRUE
+                }
+                
+                credentials$info <- tibble::tibble(user = input$user_name, name = "User")
+                
                 if (cookie_logins) {
                   .sessionid <- randomString()
                   shinyjs::js$setcookie(.sessionid)

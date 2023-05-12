@@ -8,8 +8,11 @@ loginUI(
   id,
   title = "Please log in",
   user_title = "User Name",
+  user = "",
   domain_title = "Domain",
+  domain = "",
   pass_title = "Password",
+  password = "",
   login_title = "Log in",
   login_btn_class = "btn-primary",
   error_message = "Invalid username or password!",
@@ -24,7 +27,15 @@ loginUI(
 
 \item{user_title}{label for the user name text input}
 
+\item{user}{default user name, good for development purposes}
+
+\item{domain_title}{label for domain panel}
+
+\item{domain}{default domain, good for development purposes}
+
 \item{pass_title}{label for the password text input}
+
+\item{password}{default password, good for development purposes}
 
 \item{login_title}{label for the login button}
 

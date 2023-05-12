@@ -6,8 +6,6 @@
 \usage{
 sshLoginServer(
   id,
-  user_col,
-  pwd_col,
   host,
   port,
   log_out = shiny::reactiveVal(),
@@ -20,10 +18,6 @@ sshLoginServer(
 }
 \arguments{
 \item{id}{An ID string that corresponds with the ID used to call the module's UI function}
-
-\item{user_col}{bare (unquoted) or quoted column name containing user names}
-
-\item{pwd_col}{bare (unquoted) or quoted column name containing passwords}
 
 \item{host}{bare (quotes) IP or URL of machine to use for SSH login}
 

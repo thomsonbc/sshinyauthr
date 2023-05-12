@@ -1,7 +1,7 @@
 Package: sshinyauthr
 Type: Package
 Title: 'Shiny' Authentication Modules
-Version: 1.0.0
+Version: 1.0.1
 Authors@R:
     c(person(given = "Paul", 
              family = "Campbell", 
@@ -11,7 +11,12 @@ Authors@R:
       person(given = "Michael", 
              family = "Dewar", 
              email = "michael.p.dewar@gmail.com", 
-             role = "ctb"))
+             role = "ctb"),
+      person(given = "Bennett", 
+             family = "Thomson", 
+             email = "thomsonb@tcd.ie",
+             role = c("ctb"))
+             )
 Description: Add in-app user authentication to 'shiny', 
     allowing you to secure publicly hosted apps and 
     build dynamic user interfaces from user information.
@@ -37,6 +42,6 @@ Suggests:
     ssh,
     shinyjs
 RoxygenNote: 7.2.3
-URL: https://github.com/paulc91/shinyauthr
-BugReports: https://github.com/paulc91/shinyauthr/issues
+URL: https://github.com/thomsonbc/sshinyauthr
+BugReports: https://github.com/thomsonbc/sshinyauthr/issues
 Config/testthat/edition: 3
