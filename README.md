@@ -228,47 +228,9 @@ server <- function(input, output, session) {
 shinyApp(ui = ui, server = server)
 ```
 
-## Hashing Passwords with `sodium`
-
-If you are hosting your user passwords on the internet, it is a good idea to first encrypt them with a hashing algorithm. You can use the [sodium package](https://github.com/jeroen/sodium) to do this. Sodium uses a slow hashing algorithm that is specifically designed to protect stored passwords from brute-force attacks. More on this [here](https://doc.libsodium.org/password_hashing/). You then tell the `shinyauthr::loginServer` module that your passwords have been hashed by `sodium` and `shinyauthr` will then decrypt when login is requested. Your plain text passwords must be a character vector, not factors, when hashing for this to work as shiny inputs are passed as character strings.
-
-For example, a sample user base like the following can be incorporated for use with `shinyauthr`:
-
-``` r
-# create a user base then hash passwords with sodium
-# then save to an rds file in app directory
-library(sodium)
-
-user_base <- tibble::tibble(
-  user = c("user1", "user2"),
-  password = purrr::map_chr(c("pass1", "pass2"), sodium::password_store),
-  permissions = c("admin", "standard"),
-  name = c("User One", "User Two")
-)
-
-saveRDS(user_base, "user_base.rds")
-```
-
-``` r
-# in your app code, read in the user base rds file
-user_base <- readRDS("user_base.rds")
-```
-
-``` r
-# then when calling the module set sodium_hashed = TRUE
-credentials <- shinyauthr::loginServer(
-  id = "login",
-  data = user_base,
-  user_col = user,
-  pwd_col = password,
-  sodium_hashed = TRUE,
-  log_out = reactive(logout_init())
-)
-```
-
 ## Credits
 
-`shinyauthr` originally borrowed some code from treysp's [shiny_password](https://github.com/treysp/shiny_password) template with the goal of making implementation simpler for end users and allowing the login/logout UIs to fit easily into any UI framework, including [shinydashboard](https://rstudio.github.io/shinydashboard/).
+`sshinyauthr` is a fork of `shinyauthr`, itself originally borrowing some code from treysp's [shiny_password](https://github.com/treysp/shiny_password) template with the goal of making implementation simpler for end users and allowing the login/logout UIs to fit easily into any UI framework, including [shinydashboard](https://rstudio.github.io/shinydashboard/).
 
 Thanks to [Michael Dewar](https://github.com/michael-dewar) for his contribution of cookie-based authentication. Some code was borrowed from calligross's [Shiny Cookie Based Authentication Example](https://gist.github.com/calligross/e779281b500eb93ee9e42e4d72448189) and from an earlier PR from [aqualogy](https://github.com/aqualogy/shinyauthr).
 
@@ -276,10 +238,10 @@ Thanks to [Michael Dewar](https://github.com/michael-dewar) for his contribution
 
 I'm not a security professional so cannot guarantee this authentication procedure to be foolproof. It is ultimately the shiny app developer's responsibility not to expose any sensitive content to the client without the necessary login criteria being met.
 
-I would welcome any feedback on any potential vulnerabilities in the process. I know that apps hosted on a server without an SSL certificate could be open to interception of user names and passwords submitted by a user. As such I would not recommend the use of shinyauthr without a HTTPS connection.
+I would welcome any feedback on any potential vulnerabilities in the process. I know that apps hosted on a server without an SSL certificate could be open to interception of user names and passwords submitted by a user. As such I would not recommend the use of sshinyauthr without a HTTPS connection.
 
 For apps intended for use within commercial organisations, I would recommend one of RStudio's commercial shiny hosting options, or [shinyproxy](https://www.shinyproxy.io/), both of which have built in authentication options.
 
 However, I hope that having an easy-to-implement open-source shiny authentication option like this will prove useful when alternative options are not feasible.
 
-*Paul Campbell*
+*Paul Campbell* edited by *Bennett Thomson*
