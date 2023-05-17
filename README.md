@@ -22,9 +22,9 @@ Code for example apps using various UI frameworks can be found in [inst/shiny-ex
 
 ``` r
 # login with system user/password. Local SSH logins must be enabled.
-shinyauthr::runExample("basic")
-shinyauthr::runExample("shinydashboard")
-shinyauthr::runExample("navbarPage")
+sshinyauthr::runExample("basic")
+sshinyauthr::runExample("shinydashboard")
+sshinyauthr::runExample("navbarPage")
 ```
 
 ## Usage
@@ -99,11 +99,11 @@ When the login module is called, it returns a reactive list containing 3 element
 -   `info`
 -   `manager`
 
-The initial values of these variables are `FALSE`, `NULL`, and `FALSE` respectively. However, given a data frame or tibble containing user names, passwords and other user data (optional), the login module will assign a `user_auth` value of `TRUE` if the user supplies a matching user name and password. The value of `info` then becomes the row of data associated with that user which can be used in the main app to control content based on user permission variables etc.
+The initial values of these variables are `FALSE`, `NULL`, and `FALSE` respectively. The login module will assign a `user_auth` value of `TRUE` if the user supplies a user name and password that can be used to establish an SSH connection to a specified host. The value of `info` becomes a row of data associated with that user. Once `user_auth` is `TRUE` a check will be performed to see if the user name is present within a vector of users that have manager permissions. If so, then the login module will assign `manager` a value of `TRUE`.
 
-The logout button will only show when `user_auth` is `TRUE`. Clicking the button will reset `user_auth` back to `FALSE` which will hide the button and show the login panel again.
+The logout button will only show when `user_auth` is `TRUE`. Clicking the button will reset `user_auth` and `manager` back to `FALSE` which will hide the button and show the login panel again.
 
-You can set the code in your server functions to only run after a successful login through use of the `req()` function inside all reactives, renders and observers. In the example above, using `req(credentials()$user_auth)` inside the `renderTable` function ensures the table showing the returned user information is only rendered when `user_auth` is `TRUE`.
+You can set the code in your server functions to only run after a successful login through use of the `req()` function inside all reactives, renders and observers. In the example above, using `req(credentials()$user_auth)` inside the `renderTable` function ensures the table showing the returned user information is only rendered when `user_auth` is `TRUE`. Likewise, using `req(credentials()$manager)` inside the renderTable function ensures that a logged in user must also have manager privileges for the table to be rendered. In this case, it is only necessary to use `req(credentials()$manager)` to achieve this functionality as a successful login must have occurred before this value can be assigned.
 
 A note on the `manager` element - This is a boolean value used to determine whether a user should have 'manager' privileges or not. To give users these privileges it is necessary to first specify them in an environment variable. By default the `sshLoginServer` function looks for a comma-separated list of users specified under the `MANAGER` environment variable. It is useful to specify an environment file (`.env`) in the app directory and load it with the `dotenv` [package](https://github.com/motdotla/dotenv):
 
