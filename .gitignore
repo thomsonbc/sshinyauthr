@@ -5,3 +5,4 @@
 *.Rproj
 inst/shiny-examples/shinyauthr_example/rsconnect/
 inst/doc
+.DS_Store

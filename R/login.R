@@ -275,11 +275,16 @@ loginServer <- function(id,
 #' @param sessionid_col bare (unquoted) or quoted column name containing session ids
 #' @param cookie_getter a function that returns a data.frame with at least two columns: user and session
 #' @param cookie_setter a function with two parameters: user and session.  The function must save these to a database.
+#' @param manager_env environment variable used to determine if a user has 'manager' permissions
+#' @param sep delimiter to separate manager environment variable
 #'
-#' @return The module will return a reactive 2 element list to your main application.
+#'
+#' @return The module will return a reactive 3 element list to your main application.
 #'   First element \code{user_auth} is a boolean indicating whether there has been
 #'   a successful login or not. Second element \code{info} will be the data frame provided
-#'   to the function, filtered to the row matching the successfully logged in username.
+#'   to the function, filtered to the row matching the successfully logged in username. Third 
+#'   element \code{manager} is a boolean indicating whether a logged in user has 'manager' credentials,
+#'   useful for granting specific users extra privleges. 
 #'   When \code{user_auth} is FALSE \code{info} is NULL.
 #'
 #' @importFrom rlang :=
@@ -322,6 +327,7 @@ sshLoginServer <- function(id,
                 shiny::updateTextInput(session, "password", value = "")
                 credentials$user_auth <- FALSE
                 credentials$info <- NULL
+                credentials$manager <- FALSE
             }
         })
         shiny::observe({
@@ -402,7 +408,7 @@ sshLoginServer <- function(id,
                   message("ssh authentication failed!")
                   password_match <- FALSE
                 }, warning = function(w) {
-                  message("ssh auth failed!")
+                  message("ssh authentication failed!")
                   password_match <- FALSE
                 })
             }

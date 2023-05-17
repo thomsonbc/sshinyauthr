@@ -30,19 +30,11 @@ get_sessionids_from_db <- function(conn = db, expiry = cookie_expiry) {
     filter(login_time > now() - days(expiry))
 }
 
-# dataframe that holds usernames, passwords and other user data
-user_base <- tibble::tibble(
-  user = c("user1", "user2"),
-  password = purrr::map_chr(c("pass1", "pass2"), sodium::password_store),
-  permissions = c("admin", "standard"),
-  name = c("User One", "User Two")
-)
-
 ui <- fluidPage(
   # add logout button UI
-  div(class = "pull-right", shinyauthr::logoutUI(id = "logout")),
+  div(class = "pull-right", sshinyauthr::logoutUI(id = "logout")),
   # add login panel UI function
-  shinyauthr::loginUI(id = "login"),
+  sshinyauthr::loginUI(id = "login"),
   # setup table output to show user info after login
   verbatimTextOutput("user_data")
 )
@@ -56,22 +48,18 @@ server <- function(input, output, session) {
   )
   
   # call login module supplying data frame, user and password cols and reactive trigger
-  credentials <- shinyauthr::loginServer(
+  credentials <- sshinyauthr::sshLoginServer(
     id = "login",
-    data = user_base,
-    user_col = "user",
-    pwd_col = "password",
-    sodium_hashed = TRUE,
-    cookie_logins = TRUE,
-    sessionid_col = "sessionid",
-    cookie_getter = get_sessionids_from_db,
-    cookie_setter = add_sessionid_to_db,
+    log_out = reactive(logout_init()),
+    host = '127.0.0.1',
+    port = 22,
+    manager_env = 'USER',
     reload_on_logout = FALSE,
-    log_out = reactive(logout_init())
+    cookie_logins = FALSE
   )
   
   # call the logout module with reactive trigger to hide/show
-  logout_init <- shinyauthr::logoutServer(
+  logout_init <- sshinyauthr::logoutServer(
     id = "logout",
     active = reactive(credentials()$user_auth)
   )

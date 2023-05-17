@@ -2,7 +2,7 @@ library(shiny)
 library(shinydashboard)
 library(dplyr)
 library(glue)
-library(shinyauthr)
+library(sshinyauthr)
 library(RSQLite)
 library(DBI)
 library(lubridate)
@@ -31,27 +31,19 @@ add_session_to_db <- function(user, sessionid, conn = db) {
 db <- dbConnect(SQLite(), ":memory:")
 dbCreateTable(db, "sessions", c(user = "TEXT", sessionid = "TEXT", login_time = "TEXT"))
 
-user_base <- tibble(
-  user = c("user1", "user2"),
-  password = c("pass1", "pass2"),
-  password_hash = sapply(c("pass1", "pass2"), sodium::password_store),
-  permissions = c("admin", "standard"),
-  name = c("User One", "User Two")
-)
-
 ui <- dashboardPage(
   dashboardHeader(
-    title = "shinyauthr",
+    title = "sshinyauthr",
     tags$li(
       class = "dropdown",
       style = "padding: 8px;",
-      shinyauthr::logoutUI("logout")
+      sshinyauthr::logoutUI("logout")
     ),
     tags$li(
       class = "dropdown",
       tags$a(
         icon("github"),
-        href = "https://github.com/paulc91/shinyauthr",
+        href = "https://github.com/thomsonbc/sshinyauthr",
         title = "See the code on github"
       )
     )
@@ -61,13 +53,12 @@ ui <- dashboardPage(
     div(textOutput("welcome"), style = "padding: 20px")
   ),
   dashboardBody(
-    shinyauthr::loginUI(
+    sshinyauthr::loginUI(
       "login", 
       cookie_expiry = cookie_expiry, 
       additional_ui = tagList(
-        tags$p("test the different outputs from the sample logins below
-             as well as an invalid login attempt.", class = "text-center"),
-        HTML(knitr::kable(user_base[, -3], format = "html", table.attr = "style='width:100%;'"))
+        tags$p("Test the different outputs from the sample logins below
+             as well as an invalid login attempt. Ensure your local machine is able to accept SSH connections.", class = "text-center")
       )
     ),
     uiOutput("testUI")
@@ -76,22 +67,18 @@ ui <- dashboardPage(
 
 server <- function(input, output, session) {
   
-  # call login module supplying data frame, user and password cols and reactive trigger
-  credentials <- shinyauthr::loginServer(
+  # call login module supplying host, port, environment variable specifying manager user(s)
+  credentials <- sshinyauthr::sshLoginServer(
     id = "login",
-    data = user_base,
-    user_col = user,
-    pwd_col = password_hash,
-    sodium_hashed = TRUE,
-    cookie_logins = TRUE,
-    sessionid_col = sessionid,
-    cookie_getter = get_sessions_from_db,
-    cookie_setter = add_session_to_db,
-    log_out = reactive(logout_init())
+    log_out = reactive(logout_init()),
+    host = '127.0.0.1',
+    port = 22,
+    manager_env = 'USER',
+    reload_on_logout = FALSE,
+    cookie_logins = FALSE
   )
-
   # call the logout module with reactive trigger to hide/show
-  logout_init <- shinyauthr::logoutServer(
+  logout_init <- sshinyauthr::logoutServer(
     id = "logout",
     active = reactive(credentials()$user_auth)
   )
@@ -104,16 +91,14 @@ server <- function(input, output, session) {
     }
   })
 
-  user_info <- reactive({
-    credentials()$info
-  })
+
 
   user_data <- reactive({
     req(credentials()$user_auth)
 
-    if (user_info()$permissions == "admin") {
+    if (isTRUE(credentials()$manager)) {
       dplyr::starwars[, 1:10]
-    } else if (user_info()$permissions == "standard") {
+    } else{
       dplyr::storms[, 1:11]
     }
   })
@@ -121,7 +106,7 @@ server <- function(input, output, session) {
   output$welcome <- renderText({
     req(credentials()$user_auth)
 
-    glue("Welcome {user_info()$name}")
+    glue("Welcome {credentials()$info$user}")
   })
 
   output$testUI <- renderUI({
@@ -130,13 +115,13 @@ server <- function(input, output, session) {
     fluidRow(
       column(
         width = 12,
-        tags$h2(glue("Your permission level is: {user_info()$permissions}.
-                     You logged in at: {user_info()$login_time}.
-                     Your data is: {ifelse(user_info()$permissions == 'admin', 'Starwars', 'Storms')}.")),
+        tags$h2(glue("Your permission level is: {ifelse(isTRUE(credentials()$manager), 'Manager', 'Standard')}.
+                     You logged in at: {now()}.
+                     Your data is: {ifelse(isTRUE(credentials()$manager), 'Starwars', 'Storms')}.")),
         box(
           width = NULL,
           status = "primary",
-          title = ifelse(user_info()$permissions == "admin", "Starwars Data", "Storms Data"),
+          title = ifelse(isTRUE(credentials()$manager), "Starwars Data", "Storms Data"),
           DT::renderDT(user_data(), options = list(scrollX = TRUE))
         )
       )

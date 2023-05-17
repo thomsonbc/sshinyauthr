@@ -1,4 +1,4 @@
 library(testthat)
-library(shinyauthr)
+library(sshinyauthr)
 
-test_check("shinyauthr")
+test_check("sshinyauthr")

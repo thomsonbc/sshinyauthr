@@ -1,6 +1,6 @@
 library(testthat)
 library(shiny)
-library(shinyauthr)
+library(sshinyauthr)
 
 user_base <- dplyr::tibble(
   user = c("user1", "user2"),

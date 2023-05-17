@@ -1,18 +1,10 @@
 library(shiny)
 
-# user database for logins
-user_base <- tibble::tibble(
-  user = c("user1", "user2"),
-  password = purrr::map_chr(c("pass1", "pass2"), sodium::password_store),
-  permissions = c("admin", "standard"),
-  name = c("User One", "User Two")
-)
-
 # login tab ui to be rendered on launch
 login_tab <- tabPanel(
   title = icon("lock"), 
   value = "login", 
-  shinyauthr::loginUI("login")
+  sshinyauthr::loginUI("login")
 )
 
 # additional tabs to be added after login
@@ -38,7 +30,7 @@ data_tab <- tabPanel(
 
 # initial app UI with only login tab
 ui <- navbarPage(
-  title = "shinyauthr example",
+  title = "sshinyauthr example",
   id = "tabs", # must give id here to add/remove tabs in server
   collapsible = TRUE,
   login_tab
@@ -53,24 +45,24 @@ server <- function(input, output, session) {
       tags$li(
         div(
           style = "padding: 10px; padding-top: 8px; padding-bottom: 0;",
-          shinyauthr::logoutUI("logout")
+          sshinyauthr::logoutUI("logout")
         )
       )
     )
   )
   
-  # call the shinyauthr login and logout server modules
-  credentials <- shinyauthr::loginServer(
+# call the sshinyauthr login and logout server modules
+credentials <- sshinyauthr::sshLoginServer(
     id = "login",
-    data = user_base,
-    user_col = "user",
-    pwd_col = "password",
-    sodium_hashed = TRUE,
-    reload_on_logout = TRUE,
-    log_out = reactive(logout_init())
+    log_out = reactive(logout_init()),
+    host = '127.0.0.1',
+    port = 22,
+    manager_env = 'USER',
+    reload_on_logout = FALSE,
+    cookie_logins = FALSE
   )
   
-  logout_init <- shinyauthr::logoutServer(
+  logout_init <- sshinyauthr::logoutServer(
     id = "logout",
     active = reactive(credentials()$user_auth)
   )
@@ -88,10 +80,10 @@ server <- function(input, output, session) {
       appendTab("tabs", data_tab)
       # render data tab title and table depending on permissions
       user_permission <- credentials()$info$permissions
-      if (user_permission == "admin") {
+      if (isTRUE(credentials()$manager)) {
         output$data_title <- renderUI(tags$h2("Storms data. Permissions: admin"))
         output$table <- DT::renderDT({ dplyr::storms[1:100, 1:11] })
-      } else if (user_permission == "standard") {
+      } else{
         output$data_title <- renderUI(tags$h2("Starwars data. Permissions: standard"))
         output$table <- DT::renderDT({ dplyr::starwars[, 1:10] })
       }
