@@ -1,6 +1,6 @@
 # sshinyauthr
 
-`sshinyauthr` is an R package providing module functions that can be used to add an authentication layer to your shiny apps. It is a fork of `shinyauthr` (by Paul Campbell, [available here](https://github.com/PaulC91/shinyauthr)). `shinyauthr` stores user and hashed password details within a dataframe, whereas `sshinyauthr` has the capability of authorising a login by validating an SSH connection.
+`sshinyauthr` is an R package providing module functions that can be used to add an authentication layer to your shiny apps. It is a fork of `shinyauthr` (by Paul Campbell, [available here](https://github.com/PaulC91/shinyauthr)). The original `shinyauthr` stores user and hashed password details within a data frame that is then referenced when a login attempt is made, whereas `sshinyauthr` has the capability of authorising a login by validating an SSH connection.
 
 SSH connections are validated by first pinging (using [pingr](https://github.com/r-lib/pingr#readme)) the specified host to ensure it exists, then attempting to login using the `ssh` [package](https://cran.r-project.org/web/packages/ssh/vignettes/intro.html) with the user / password supplied. If the login attempt is successful then access to the app is granted for the user and the SSH connection is immediately closed.
 
@@ -230,7 +230,7 @@ shinyApp(ui = ui, server = server)
 
 ## Credits
 
-`sshinyauthr` is a fork of `shinyauthr`, itself originally borrowing some code from treysp's [shiny_password](https://github.com/treysp/shiny_password) template with the goal of making implementation simpler for end users and allowing the login/logout UIs to fit easily into any UI framework, including [shinydashboard](https://rstudio.github.io/shinydashboard/).
+`sshinyauthr` is a fork of [Paul Campbell's](https://paulc91.github.io/shinyauthr/) `shinyauthr`, itself originally borrowing some code from treysp's [shiny_password](https://github.com/treysp/shiny_password) template with the goal of making implementation simpler for end users and allowing the login/logout UIs to fit easily into any UI framework, including [shinydashboard](https://rstudio.github.io/shinydashboard/).
 
 Thanks to [Michael Dewar](https://github.com/michael-dewar) for his contribution of cookie-based authentication. Some code was borrowed from calligross's [Shiny Cookie Based Authentication Example](https://gist.github.com/calligross/e779281b500eb93ee9e42e4d72448189) and from an earlier PR from [aqualogy](https://github.com/aqualogy/shinyauthr).
 
@@ -244,4 +244,4 @@ For apps intended for use within commercial organisations, I would recommend one
 
 However, I hope that having an easy-to-implement open-source shiny authentication option like this will prove useful when alternative options are not feasible.
 
-*Paul Campbell* edited by *Bennett Thomson*
+*Bennett Thomson*
